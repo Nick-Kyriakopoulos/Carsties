@@ -8,6 +8,8 @@ using AuctionService.Data;
 using AuctionService.Entities;
 using Microsoft.EntityFrameworkCore;
 using AuctionService.DTOs;
+using Microsoft.EntityFrameworkCore.Diagnostics;
+using AutoMapper.QueryableExtensions;
 
 [ApiController]
 [Route("api/auctions")]
@@ -17,15 +19,17 @@ public class AuctionsController(AuctionDbContext context, IMapper mapper) : Cont
     private readonly IMapper _mapper = mapper;
 
     [HttpGet]
-    public async Task<ActionResult<List<AuctionDTO>>> GetAllAuctions()
+    public async Task<ActionResult<List<AuctionDTO>>> GetAllAuctions(string date)
     {
-        var auctions = await _context.Auctions
-            .Include(x => x.Item)
-            .OrderBy(x => x.Item.Make)
-            .ThenBy(x => x.Item.Model)  // Add secondary sorting
-            .ToListAsync();
+        var query = _context.Auctions.OrderBy(x => x.Item.Make).AsQueryable();
 
-        return _mapper.Map<List<AuctionDTO>>(auctions);
+        if (!string.IsNullOrEmpty(date))
+        {
+            query = query.Where(x => x.UpdateAt.CompareTo(DateTime.Parse(date).ToUniversalTime()) > 0);
+        }
+
+       
+        return await query.ProjectTo<AuctionDTO>(_mapper.ConfigurationProvider).ToListAsync();
     }
 
     [HttpGet("{id}")]
