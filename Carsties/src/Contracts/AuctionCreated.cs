@@ -1,9 +1,9 @@
-using MongoDB.Entities;
+namespace Contracts;
 
-namespace SearchService.Models;
-
-public class Item : Entity
+public class AuctionCreated
 {
+    public Guid Id { get; set; }
+
     public int ReservePrice { get; set; }
 
     public string Seller { get; set; }
@@ -16,7 +16,7 @@ public class Item : Entity
 
     public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
 
-    public DateTime UpdatedAt { get; set; } = DateTime.UtcNow;
+    public DateTime UpdateAt { get; set; } = DateTime.UtcNow;
 
     public DateTime AuctionEnd { get; set; }
 
@@ -29,5 +29,4 @@ public class Item : Entity
 
     public int Mileage { get; set; }
     public string ImageUrl { get; set; }
-
 }

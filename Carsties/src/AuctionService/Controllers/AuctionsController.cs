@@ -2,21 +2,30 @@ namespace AuctionService.Controllers;
 
 using AutoMapper;
 using Microsoft.AspNetCore.Mvc;
-using AuctionService.RequestHelpers;
-using System.Reflection.Metadata.Ecma335;
 using AuctionService.Data;
 using AuctionService.Entities;
 using Microsoft.EntityFrameworkCore;
 using AuctionService.DTOs;
-using Microsoft.EntityFrameworkCore.Diagnostics;
 using AutoMapper.QueryableExtensions;
+using MassTransit;
+using MassTransit.Transports;
+using Contracts;
 
 [ApiController]
 [Route("api/auctions")]
-public class AuctionsController(AuctionDbContext context, IMapper mapper) : ControllerBase
+public class AuctionsController : ControllerBase
 {
-    private readonly AuctionDbContext _context = context;
-    private readonly IMapper _mapper = mapper;
+    private readonly AuctionDbContext _context;
+    private readonly IMapper _mapper;
+    private readonly IPublishEndpoint _publishEndpoint;
+
+    public AuctionsController(AuctionDbContext context, IMapper mapper,
+     IPublishEndpoint publishEndpoint)
+    {
+        _context = context;
+        _mapper = mapper;
+        _publishEndpoint = publishEndpoint;
+    }
 
     [HttpGet]
     public async Task<ActionResult<List<AuctionDTO>>> GetAllAuctions(string date)
@@ -53,12 +62,14 @@ public class AuctionsController(AuctionDbContext context, IMapper mapper) : Cont
 
         _context.Auctions.Add(auction);
 
-        var result = await _context.SaveChangesAsync() > 0;
+        var newAuction = _mapper.Map<AuctionDTO>(auction);
 
-        if (!result) return BadRequest("Couldnt save changes to the DB");
+        await _publishEndpoint.Publish(_mapper.Map<AuctionCreated>(newAuction));
+
+        var result = await _context.SaveChangesAsync() > 0;    
 
         return CreatedAtAction(nameof(GetAuctionById),
-                new { auction.Id }, _mapper.Map<AuctionDTO>(auction));
+            new { auction.Id }, _mapper.Map<AuctionDTO>(auction));
     }
 
     [HttpPut("{id}")]
@@ -77,6 +88,8 @@ public class AuctionsController(AuctionDbContext context, IMapper mapper) : Cont
         auction.Item.Mileage = updateAuctionDto.Mileage ?? auction.Item.Mileage;
         auction.Item.Year = updateAuctionDto.Year ?? auction.Item.Year;
 
+        await _publishEndpoint.Publish(_mapper.Map<AuctionUpdated>(auction));
+
         var result = await _context.SaveChangesAsync() > 0;
 
         if (result) return Ok();
@@ -94,7 +107,9 @@ public class AuctionsController(AuctionDbContext context, IMapper mapper) : Cont
         //TODO: check seller == username
 
         _context.Auctions.Remove(auction);
-        // Remove related items
+
+        await _publishEndpoint.Publish<AuctionDeleted>(new{ Id = auction.Id.ToString() } );
+
         var result = await _context.SaveChangesAsync() > 0;
 
         if (!result) return BadRequest("Couldn't not update DB");
