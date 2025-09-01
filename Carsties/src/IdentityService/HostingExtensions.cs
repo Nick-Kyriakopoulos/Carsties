@@ -64,6 +64,11 @@ internal static class HostingExtensions
                 options.Events.RaiseFailureEvents = true;
                 options.Events.RaiseSuccessEvents = true;
 
+                if (builder.Environment.IsEnvironment("Docker"))
+                {
+                    options.IssuerUri = "http://localhost:5001";
+                }
+
                 // Use a large chunk size for diagnostic data in development where it will be redirected to a local file.
                 if (builder.Environment.IsDevelopment())
                 {

@@ -13,11 +13,11 @@ public class Index : PageModel
 
     public async Task<IActionResult> OnGet()
     {
-        //Replace with an authorization policy check
-        if (HttpContext.Connection.IsRemote())
-        {
-            return NotFound();
-        }
+        // Replace with an authorization policy check
+        //   if (HttpContext.Connection.IsRemote())
+        //   {
+        //      return NotFound();
+        //  }
 
         View = new ViewModel(await HttpContext.AuthenticateAsync());
 

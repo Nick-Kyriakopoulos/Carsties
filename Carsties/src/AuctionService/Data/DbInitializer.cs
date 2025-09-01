@@ -14,15 +14,17 @@ public class DbInitializer
 
     private static void SeedData(AuctionDbContext context)
     {
-        context.Database.Migrate();
-
-        if (context.Auctions.Any())
+        try
         {
-            Console.WriteLine("Already have data - no need to seed.");
-            return;
-        }
+            context.Database.Migrate();
 
-        var auctions = new List<Auction>()
+            if (context.Auctions.Any())
+            {
+                Console.WriteLine("Already have data - no need to seed.");
+                return;
+            }
+            Console.WriteLine("Seeding database...");
+            var auctions = new List<Auction>()
         {
             	    // 1 Ford GT
             new Auction
@@ -205,8 +207,15 @@ public class DbInitializer
 
         };
 
-        context.AddRange(auctions);
+            context.AddRange(auctions);
 
-        context.SaveChanges();
-    }                                                                    
+            context.SaveChanges();
+
+            Console.WriteLine("Seeding complete!");
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"An error occurred while seeding the database: {ex.Message}");
+        }
+    }
 }
